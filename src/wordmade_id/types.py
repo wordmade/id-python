@@ -274,6 +274,8 @@ class SearchParams:
     cert_level: int = 0
     min_trust: int = 0
     sort: str = ""
+    cert_freshness: str = ""
+    uuid_prefix: str = ""
     page: int = 0
     per_page: int = 0
 
@@ -295,6 +297,10 @@ class SearchParams:
             params["min_trust"] = str(self.min_trust)
         if self.sort:
             params["sort"] = self.sort
+        if self.cert_freshness:
+            params["cert_freshness"] = self.cert_freshness
+        if self.uuid_prefix:
+            params["uuid"] = self.uuid_prefix
         if self.page > 0:
             params["page"] = str(self.page)
         if self.per_page > 0:

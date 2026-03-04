@@ -82,7 +82,7 @@ jobs:
           FAILED=0
 
           if grep -rn 'docs/architecture/\|sources/internal/\|huru-io\|localhost:[0-9]\|stack[0-9]\|/home/\|\.claude/team' \
-            src/ tests/ README.md CLAUDE.md Makefile pyproject.toml 2>/dev/null; then
+            src/ tests/ examples/ README.md CLAUDE.md Makefile pyproject.toml 2>/dev/null; then
             echo "ERROR: Found infrastructure references."
             FAILED=1
           fi
@@ -99,7 +99,7 @@ jobs:
           FAILED=0
 
           if grep -rni 'jota\|edovale\|garcia\|@huru\.io' \
-            src/ tests/ README.md CLAUDE.md Makefile pyproject.toml 2>/dev/null; then
+            src/ tests/ examples/ README.md CLAUDE.md Makefile pyproject.toml 2>/dev/null; then
             echo "ERROR: Found personal identity references."
             FAILED=1
           fi

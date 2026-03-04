@@ -29,6 +29,9 @@ dependencies = [
     "httpx>=0.25.0",
 ]
 
+[project.optional-dependencies]
+dev = ["pytest", "pytest-asyncio", "ruff", "mypy"]
+
 [project.urls]
 Homepage = "https://id.wordmade.world"
 Documentation = "https://id.wordmade.world/docs"

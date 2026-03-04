@@ -1,5 +1,6 @@
 """Wordmade ID Python SDK — agent identity for AI agents."""
 
+from ._version import __version__
 from .async_client import AsyncWordmadeID
 from .client import WordmadeID
 from .errors import (
@@ -25,6 +26,7 @@ from .types import (
 )
 
 __all__ = [
+    "__version__",
     "WordmadeID",
     "AsyncWordmadeID",
     "APIError",

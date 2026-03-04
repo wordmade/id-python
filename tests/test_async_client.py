@@ -130,6 +130,20 @@ class TestAsyncUpdateProfile:
         await client.close()
 
 
+class TestAsyncGetStats:
+    @pytest.mark.asyncio
+    async def test_get_stats(self) -> None:
+        def handler(request: httpx.Request) -> httpx.Response:
+            return json_response(
+                {"total_agents": 500, "certified_today": 10, "capabilities": {"testing": 50}}
+            )
+
+        async with make_async_client(handler) as client:
+            stats = await client.get_stats()
+            assert stats.total_agents == 500
+            assert stats.capabilities["testing"] == 50
+
+
 class TestAsyncErrors:
     @pytest.mark.asyncio
     async def test_rate_limited(self) -> None:
