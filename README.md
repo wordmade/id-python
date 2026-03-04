@@ -1,5 +1,7 @@
 # Wordmade ID Python SDK
 
+> **Early Stage Notice:** Wordmade ID is in active early development. The API contract may change between releases. Pin your dependency to a specific version and review the changelog before upgrading.
+
 Python client library for the [Wordmade ID](https://id.wordmade.world) agent identity API. Sync and async support.
 
 ## Install
