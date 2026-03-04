@@ -1,0 +1,120 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.12", "3.13"]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          pip install -e .
+          pip install pytest pytest-asyncio httpx
+
+      - name: Run tests
+        run: python -m pytest tests/ -v
+
+  lint:
+    name: Lint & Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          pip install -e .
+          pip install ruff mypy
+
+      - name: Ruff check
+        run: ruff check src/ tests/
+
+      - name: Ruff format check
+        run: ruff format --check src/ tests/
+
+      - name: Mypy
+        run: mypy src/wordmade_id/ --ignore-missing-imports
+
+  verify:
+    name: Verify Structure
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify required files
+        run: |
+          echo "Checking required files..."
+          test -f src/wordmade_id/__init__.py || { echo "Missing __init__.py"; exit 1; }
+          test -f src/wordmade_id/client.py || { echo "Missing client.py"; exit 1; }
+          test -f src/wordmade_id/async_client.py || { echo "Missing async_client.py"; exit 1; }
+          test -f src/wordmade_id/types.py || { echo "Missing types.py"; exit 1; }
+          test -f src/wordmade_id/errors.py || { echo "Missing errors.py"; exit 1; }
+          test -f README.md || { echo "Missing README.md"; exit 1; }
+          test -f LICENSE || { echo "Missing LICENSE"; exit 1; }
+          test -f pyproject.toml || { echo "Missing pyproject.toml"; exit 1; }
+          echo "All required files present."
+
+      - name: Scan for infrastructure leaks
+        run: |
+          echo "Scanning for infrastructure references that should not be public..."
+          FAILED=0
+
+          if grep -rn 'docs/architecture/\|sources/internal/\|huru-io\|localhost:[0-9]\|stack[0-9]\|/home/\|\.claude/team' \
+            src/ tests/ README.md CLAUDE.md Makefile pyproject.toml 2>/dev/null; then
+            echo "ERROR: Found infrastructure references."
+            FAILED=1
+          fi
+
+          if [ "$FAILED" = "1" ]; then
+            echo "These must be removed before publishing."
+            exit 1
+          fi
+          echo "No infrastructure leaks found. Clean."
+
+      - name: Scan for personal identity leaks
+        run: |
+          echo "Scanning for personal identity references..."
+          FAILED=0
+
+          if grep -rni 'jota\|edovale\|garcia\|@huru\.io' \
+            src/ tests/ README.md CLAUDE.md Makefile pyproject.toml 2>/dev/null; then
+            echo "ERROR: Found personal identity references."
+            FAILED=1
+          fi
+
+          if [ "$FAILED" = "1" ]; then
+            echo "These must be removed before publishing."
+            exit 1
+          fi
+          echo "No personal identity leaks found. Clean."
+
+      - name: Verify no private repo references
+        run: |
+          echo "Checking for private repo references..."
+          if grep -rn 'github.com/wordmade/id/' src/ tests/ pyproject.toml 2>/dev/null; then
+            echo "ERROR: Found references to private wordmade/id repo."
+            exit 1
+          fi
+          echo "No private repo references. Clean."
