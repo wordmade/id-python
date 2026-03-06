@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-import httpx
+from typing import TYPE_CHECKING
+
 import pytest
 
 from wordmade_id import (
@@ -15,6 +16,9 @@ from wordmade_id import (
 )
 
 from .conftest import error_response, json_response, make_async_client
+
+if TYPE_CHECKING:
+    import httpx
 
 
 class TestAsyncLookup:

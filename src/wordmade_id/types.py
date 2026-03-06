@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
 @dataclass
@@ -28,14 +28,14 @@ class Agent:
     country: str = ""
     city: str = ""
     business: str = ""
-    capabilities: List[str] = field(default_factory=list)
-    verification: Dict[str, Any] = field(default_factory=dict)
-    custom: Dict[str, str] = field(default_factory=dict)
-    world_presences: List[WorldPresence] = field(default_factory=list)
-    stats: Dict[str, Any] = field(default_factory=dict)
+    capabilities: list[str] = field(default_factory=list)
+    verification: dict[str, Any] = field(default_factory=dict)
+    custom: dict[str, str] = field(default_factory=dict)
+    world_presences: list[WorldPresence] = field(default_factory=list)
+    stats: dict[str, Any] = field(default_factory=dict)
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> Agent:
+    def from_dict(cls, data: dict[str, Any]) -> Agent:
         """Create an Agent from an API response dict."""
         presences = [
             WorldPresence(
@@ -67,14 +67,14 @@ class Agent:
 class DirectoryPage:
     """Paginated list of agents from the directory."""
 
-    agents: List[Dict[str, Any]]
+    agents: list[dict[str, Any]]
     total: int
     page: int
     per_page: int
     pages: int
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> DirectoryPage:
+    def from_dict(cls, data: dict[str, Any]) -> DirectoryPage:
         return cls(
             agents=data.get("agents", []),
             total=data.get("total", 0),
@@ -90,10 +90,10 @@ class DirectoryStats:
 
     total_agents: int
     certified_today: int
-    capabilities: Dict[str, int]
+    capabilities: dict[str, int]
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> DirectoryStats:
+    def from_dict(cls, data: dict[str, Any]) -> DirectoryStats:
         return cls(
             total_agents=data.get("total_agents", 0),
             certified_today=data.get("certified_today", 0),
@@ -111,7 +111,7 @@ class VerifyResult:
     name: str = ""
     trust_score: int = 0
     verification_level: str = ""
-    capabilities: List[str] = field(default_factory=list)
+    capabilities: list[str] = field(default_factory=list)
     cert_score: float = 0.0
     cert_level: int = 0
     certified_at: str = ""
@@ -121,7 +121,7 @@ class VerifyResult:
     error: str = ""
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> VerifyResult:
+    def from_dict(cls, data: dict[str, Any]) -> VerifyResult:
         return cls(
             valid=data.get("valid", False),
             uuid=data.get("uuid", ""),
@@ -149,11 +149,11 @@ class RegisterRequest:
     name: str
     accepted_terms: bool
     bio_oneliner: str = ""
-    capabilities: List[str] = field(default_factory=list)
+    capabilities: list[str] = field(default_factory=list)
     recovery_email: str = ""
 
-    def to_dict(self) -> Dict[str, Any]:
-        d: Dict[str, Any] = {
+    def to_dict(self) -> dict[str, Any]:
+        d: dict[str, Any] = {
             "cert_token": self.cert_token,
             "handle": self.handle,
             "name": self.name,
@@ -179,7 +179,7 @@ class RegisterResponse:
     profile_url: str
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> RegisterResponse:
+    def from_dict(cls, data: dict[str, Any]) -> RegisterResponse:
         return cls(
             uuid=data.get("uuid", ""),
             handle=data.get("handle", ""),
@@ -198,10 +198,10 @@ class TokenRequest:
     handle: str = ""
     uuid: str = ""
     audience: str = ""
-    scope: List[str] = field(default_factory=list)
+    scope: list[str] = field(default_factory=list)
 
-    def to_dict(self) -> Dict[str, Any]:
-        d: Dict[str, Any] = {
+    def to_dict(self) -> dict[str, Any]:
+        d: dict[str, Any] = {
             "api_key": self.api_key,
             "cert_token": self.cert_token,
         }
@@ -224,7 +224,7 @@ class TokenResponse:
     expires_at: str
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> TokenResponse:
+    def from_dict(cls, data: dict[str, Any]) -> TokenResponse:
         return cls(
             token=data.get("token", ""),
             expires_at=data.get("expires_at", ""),
@@ -235,16 +235,16 @@ class TokenResponse:
 class ProfileUpdate:
     """Mutable fields for updating an agent profile. Only set fields are sent."""
 
-    name: Optional[str] = None
-    bio_oneliner: Optional[str] = None
-    bio: Optional[str] = None
-    country: Optional[str] = None
-    city: Optional[str] = None
-    business: Optional[str] = None
-    capabilities: Optional[List[str]] = None
+    name: str | None = None
+    bio_oneliner: str | None = None
+    bio: str | None = None
+    country: str | None = None
+    city: str | None = None
+    business: str | None = None
+    capabilities: list[str] | None = None
 
-    def to_dict(self) -> Dict[str, Any]:
-        d: Dict[str, Any] = {}
+    def to_dict(self) -> dict[str, Any]:
+        d: dict[str, Any] = {}
         if self.name is not None:
             d["name"] = self.name
         if self.bio_oneliner is not None:
@@ -279,8 +279,8 @@ class SearchParams:
     page: int = 0
     per_page: int = 0
 
-    def to_query(self) -> Dict[str, str]:
-        params: Dict[str, str] = {}
+    def to_query(self) -> dict[str, str]:
+        params: dict[str, str] = {}
         if self.q:
             params["q"] = self.q
         if self.capability:
@@ -320,11 +320,11 @@ class Skill:
     id: str
     name: str
     description: str = ""
-    tags: List[str] = field(default_factory=list)
-    examples: List[str] = field(default_factory=list)
+    tags: list[str] = field(default_factory=list)
+    examples: list[str] = field(default_factory=list)
 
-    def to_dict(self) -> Dict[str, Any]:
-        d: Dict[str, Any] = {"id": self.id, "name": self.name}
+    def to_dict(self) -> dict[str, Any]:
+        d: dict[str, Any] = {"id": self.id, "name": self.name}
         if self.description:
             d["description"] = self.description
         if self.tags:
@@ -334,7 +334,7 @@ class Skill:
         return d
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> Skill:
+    def from_dict(cls, data: dict[str, Any]) -> Skill:
         return cls(
             id=data.get("id", ""),
             name=data.get("name", ""),
@@ -348,11 +348,11 @@ class Skill:
 class SkillsResponse:
     """Response from listing or replacing skills."""
 
-    skills: List[Skill]
+    skills: list[Skill]
     count: int
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> SkillsResponse:
+    def from_dict(cls, data: dict[str, Any]) -> SkillsResponse:
         return cls(
             skills=[Skill.from_dict(s) for s in data.get("skills", [])],
             count=data.get("count", 0),
@@ -374,7 +374,7 @@ class CustomField:
     well_known: bool = False
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> CustomField:
+    def from_dict(cls, data: dict[str, Any]) -> CustomField:
         return cls(
             key=data.get("key", ""),
             value=data.get("value", ""),
@@ -387,12 +387,12 @@ class CustomField:
 class CustomFieldsResponse:
     """Response from listing custom fields."""
 
-    fields: List[CustomField]
+    fields: list[CustomField]
     count: int
     quota: int
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> CustomFieldsResponse:
+    def from_dict(cls, data: dict[str, Any]) -> CustomFieldsResponse:
         return cls(
             fields=[CustomField.from_dict(f) for f in data.get("fields", [])],
             count=data.get("count", 0),
@@ -412,7 +412,7 @@ class WellKnownField:
     format: str = ""
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> WellKnownField:
+    def from_dict(cls, data: dict[str, Any]) -> WellKnownField:
         return cls(
             key=data.get("key", ""),
             description=data.get("description", ""),
@@ -427,12 +427,12 @@ class WellKnownField:
 class WellKnownFieldsResponse:
     """Response from listing recognized custom field keys."""
 
-    fields: List[WellKnownField]
+    fields: list[WellKnownField]
     count: int
     note: str = ""
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> WellKnownFieldsResponse:
+    def from_dict(cls, data: dict[str, Any]) -> WellKnownFieldsResponse:
         return cls(
             fields=[WellKnownField.from_dict(f) for f in data.get("fields", [])],
             count=data.get("count", 0),
@@ -454,7 +454,7 @@ class MetadataEntry:
     updated_at: str = ""
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> MetadataEntry:
+    def from_dict(cls, data: dict[str, Any]) -> MetadataEntry:
         return cls(
             key=data.get("key", ""),
             value=data.get("value", ""),
@@ -466,12 +466,12 @@ class MetadataEntry:
 class MetadataListResponse:
     """Response from listing private metadata."""
 
-    keys: List[MetadataEntry]
+    keys: list[MetadataEntry]
     count: int
     quota: int
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> MetadataListResponse:
+    def from_dict(cls, data: dict[str, Any]) -> MetadataListResponse:
         return cls(
             keys=[MetadataEntry.from_dict(k) for k in data.get("keys", [])],
             count=data.get("count", 0),
@@ -493,7 +493,7 @@ class SessionResponse:
     agent_uuid: str
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> SessionResponse:
+    def from_dict(cls, data: dict[str, Any]) -> SessionResponse:
         return cls(
             token=data.get("token", ""),
             expires_at=data.get("expires_at", ""),
@@ -517,7 +517,7 @@ class RotateKeyResponse:
     profile_url: str
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> RotateKeyResponse:
+    def from_dict(cls, data: dict[str, Any]) -> RotateKeyResponse:
         return cls(
             api_key=data.get("api_key", ""),
             api_key_id=data.get("api_key_id", ""),
@@ -540,7 +540,7 @@ class AvatarResponse:
     content_type: str
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> AvatarResponse:
+    def from_dict(cls, data: dict[str, Any]) -> AvatarResponse:
         return cls(
             avatar_url=data.get("avatar_url", ""),
             content_type=data.get("content_type", ""),
@@ -560,8 +560,8 @@ class RecoverRequest:
     handle: str = ""
     uuid: str = ""
 
-    def to_dict(self) -> Dict[str, Any]:
-        d: Dict[str, Any] = {"cert_token": self.cert_token}
+    def to_dict(self) -> dict[str, Any]:
+        d: dict[str, Any] = {"cert_token": self.cert_token}
         if self.handle:
             d["handle"] = self.handle
         if self.uuid:
@@ -576,7 +576,7 @@ class RecoverConfirmRequest:
     recovery_token: str
     cert_token: str
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "recovery_token": self.recovery_token,
             "cert_token": self.cert_token,
@@ -593,7 +593,7 @@ class RecoverConfirmResponse:
     api_key_id: str
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> RecoverConfirmResponse:
+    def from_dict(cls, data: dict[str, Any]) -> RecoverConfirmResponse:
         return cls(
             uuid=data.get("uuid", ""),
             handle=data.get("handle", ""),
@@ -622,8 +622,8 @@ class RegistryParams:
     page: int = 0
     per_page: int = 0
 
-    def to_query(self) -> Dict[str, str]:
-        params: Dict[str, str] = {}
+    def to_query(self) -> dict[str, str]:
+        params: dict[str, str] = {}
         if self.q:
             params["q"] = self.q
         if self.skill:
@@ -651,14 +651,14 @@ class RegistryParams:
 class RegistryPage:
     """Paginated list of A2A agent cards."""
 
-    cards: List[Dict[str, Any]]
+    cards: list[dict[str, Any]]
     total: int
     page: int
     per_page: int
     pages: int
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> RegistryPage:
+    def from_dict(cls, data: dict[str, Any]) -> RegistryPage:
         return cls(
             cards=data.get("cards", []),
             total=data.get("total", 0),

@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-import httpx
+from typing import TYPE_CHECKING
+
 import pytest
 
 from wordmade_id import (
@@ -16,11 +17,13 @@ from wordmade_id import (
     Skill,
     TokenRequest,
     UnauthorizedError,
-    WordmadeID,
 )
 from wordmade_id.errors import ForbiddenError
 
 from .conftest import error_response, json_response, make_sync_client
+
+if TYPE_CHECKING:
+    import httpx
 
 
 class TestLookup:
@@ -304,7 +307,10 @@ class TestSetCustomField:
     def test_set_custom_field(self) -> None:
         def handler(request: httpx.Request) -> httpx.Response:
             assert request.method == "PUT"
-            return json_response({"key": "website", "value": "https://example.com"}, status_code=201)
+            return json_response(
+                {"key": "website", "value": "https://example.com"},
+                status_code=201,
+            )
 
         client = make_sync_client(handler, agent_key="iak_key")
         client.set_custom_field("uuid1", "website", "https://example.com")
@@ -313,7 +319,10 @@ class TestSetCustomField:
 class TestListWellKnownFields:
     def test_list_well_known_fields(self) -> None:
         data = {
-            "fields": [{"key": "website", "description": "URL", "category": "contact", "rendering": "link"}],
+            "fields": [
+                {"key": "website", "description": "URL",
+                 "category": "contact", "rendering": "link"},
+            ],
             "count": 1,
             "note": "Recognized keys",
         }

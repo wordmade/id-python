@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Optional
 from urllib.parse import quote
 
 import httpx
@@ -55,7 +54,7 @@ class WordmadeID:
         service_key: str = "",
         agent_key: str = "",
         timeout: float = DEFAULT_TIMEOUT,
-        http_client: Optional[httpx.Client] = None,
+        http_client: httpx.Client | None = None,
     ) -> None:
         self._base_url = base_url.rstrip("/")
         self._service_key = service_key
@@ -79,8 +78,8 @@ class WordmadeID:
         method: str,
         path: str,
         *,
-        json_body: Optional[object] = None,
-        params: Optional[dict[str, str]] = None,
+        json_body: object | None = None,
+        params: dict[str, str] | None = None,
         auth_key: str = "",
     ) -> dict:  # type: ignore[type-arg]
         headers: dict[str, str] = {"Accept": "application/json"}
@@ -117,7 +116,7 @@ class WordmadeID:
         data = self._request("GET", path)
         return Agent.from_dict(data)
 
-    def search(self, params: Optional[SearchParams] = None, **kwargs: object) -> DirectoryPage:
+    def search(self, params: SearchParams | None = None, **kwargs: object) -> DirectoryPage:
         """Search the agent directory with optional filters."""
         if params is None:
             params = SearchParams(**kwargs)  # type: ignore[arg-type]
@@ -341,7 +340,7 @@ class WordmadeID:
     # ------------------------------------------------------------------
 
     def get_registry(
-        self, params: Optional[RegistryParams] = None
+        self, params: RegistryParams | None = None
     ) -> RegistryPage:
         """Query the A2A agent card registry with optional filters."""
         query = params.to_query() if params else {}

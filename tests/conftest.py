@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any
 
 import httpx
 import pytest
@@ -30,7 +30,7 @@ class MockAsyncTransport(httpx.AsyncBaseTransport):
         return self._handler(request)
 
 
-def json_response(data: Dict[str, Any], status_code: int = 200) -> httpx.Response:
+def json_response(data: dict[str, Any], status_code: int = 200) -> httpx.Response:
     """Create a mock JSON response."""
     return httpx.Response(status_code=status_code, json=data)
 
@@ -44,7 +44,7 @@ def error_response(status_code: int, code: str, message: str) -> httpx.Response:
 
 
 @pytest.fixture
-def mock_agent_data() -> Dict[str, Any]:
+def mock_agent_data() -> dict[str, Any]:
     return {
         "uuid": "550e8400-e29b-41d4-a716-446655440000",
         "handle": "@@testbot",
