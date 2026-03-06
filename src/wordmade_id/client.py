@@ -175,9 +175,7 @@ class WordmadeID:
         Requires agent_key to be set (iak_ or ias_).
         """
         path = f"/v1/agents/{quote(agent_uuid, safe='')}"
-        data = self._request(
-            "PUT", path, json_body=fields.to_dict(), auth_key=self._agent_key
-        )
+        data = self._request("PUT", path, json_body=fields.to_dict(), auth_key=self._agent_key)
         return Agent.from_dict(data)
 
     # ------------------------------------------------------------------
@@ -193,9 +191,7 @@ class WordmadeID:
     def add_skill(self, agent_uuid: str, skill: Skill) -> Skill:
         """Add a skill to the agent. Requires agent_key."""
         path = f"/v1/agents/{quote(agent_uuid, safe='')}/skills"
-        data = self._request(
-            "POST", path, json_body=skill.to_dict(), auth_key=self._agent_key
-        )
+        data = self._request("POST", path, json_body=skill.to_dict(), auth_key=self._agent_key)
         return Skill.from_dict(data)
 
     def replace_skills(self, agent_uuid: str, skills: list[Skill]) -> SkillsResponse:
@@ -291,9 +287,7 @@ class WordmadeID:
     # Avatar (agent auth for write, public read)
     # ------------------------------------------------------------------
 
-    def upload_avatar(
-        self, agent_uuid: str, image: bytes, content_type: str
-    ) -> AvatarResponse:
+    def upload_avatar(self, agent_uuid: str, image: bytes, content_type: str) -> AvatarResponse:
         """Upload an avatar image. Requires agent_key."""
         path = f"/v1/agents/{quote(agent_uuid, safe='')}/avatar"
         headers: dict[str, str] = {"Accept": "application/json"}
@@ -330,18 +324,14 @@ class WordmadeID:
 
     def recover_confirm(self, request: RecoverConfirmRequest) -> RecoverConfirmResponse:
         """Complete key recovery with the recovery token from email."""
-        data = self._request(
-            "POST", "/v1/agents/recover/confirm", json_body=request.to_dict()
-        )
+        data = self._request("POST", "/v1/agents/recover/confirm", json_body=request.to_dict())
         return RecoverConfirmResponse.from_dict(data)
 
     # ------------------------------------------------------------------
     # Registry (public, A2A agent card registry)
     # ------------------------------------------------------------------
 
-    def get_registry(
-        self, params: RegistryParams | None = None
-    ) -> RegistryPage:
+    def get_registry(self, params: RegistryParams | None = None) -> RegistryPage:
         """Query the A2A agent card registry with optional filters."""
         query = params.to_query() if params else {}
         data = self._request("GET", "/v1/registry", params=query or None)

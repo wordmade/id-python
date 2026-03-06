@@ -260,9 +260,7 @@ class TestAddSkill:
         def handler(request: httpx.Request) -> httpx.Response:
             assert request.method == "POST"
             assert request.headers.get("Authorization") == "Bearer iak_key"
-            return json_response(
-                {"id": "testing", "name": "Testing"}, status_code=201
-            )
+            return json_response({"id": "testing", "name": "Testing"}, status_code=201)
 
         client = make_sync_client(handler, agent_key="iak_key")
         result = client.add_skill("uuid1", Skill(id="testing", name="Testing"))
@@ -320,8 +318,12 @@ class TestListWellKnownFields:
     def test_list_well_known_fields(self) -> None:
         data = {
             "fields": [
-                {"key": "website", "description": "URL",
-                 "category": "contact", "rendering": "link"},
+                {
+                    "key": "website",
+                    "description": "URL",
+                    "category": "contact",
+                    "rendering": "link",
+                },
             ],
             "count": 1,
             "note": "Recognized keys",

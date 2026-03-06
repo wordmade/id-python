@@ -116,9 +116,7 @@ class AsyncWordmadeID:
         data = await self._request("GET", path)
         return Agent.from_dict(data)
 
-    async def search(
-        self, params: SearchParams | None = None, **kwargs: object
-    ) -> DirectoryPage:
+    async def search(self, params: SearchParams | None = None, **kwargs: object) -> DirectoryPage:
         """Search the agent directory with optional filters."""
         if params is None:
             params = SearchParams(**kwargs)  # type: ignore[arg-type]
@@ -139,9 +137,7 @@ class AsyncWordmadeID:
         body: dict[str, str] = {"token": token}
         if audience:
             body["audience"] = audience
-        data = await self._request(
-            "POST", "/v1/verify", json_body=body, auth_key=self._service_key
-        )
+        data = await self._request("POST", "/v1/verify", json_body=body, auth_key=self._service_key)
         return VerifyResult.from_dict(data)
 
     # ------------------------------------------------------------------
@@ -150,16 +146,12 @@ class AsyncWordmadeID:
 
     async def register(self, request: RegisterRequest) -> RegisterResponse:
         """Register a new agent identity."""
-        data = await self._request(
-            "POST", "/v1/agents/register", json_body=request.to_dict()
-        )
+        data = await self._request("POST", "/v1/agents/register", json_body=request.to_dict())
         return RegisterResponse.from_dict(data)
 
     async def issue_token(self, request: TokenRequest) -> TokenResponse:
         """Request a JWT identity token for an agent."""
-        data = await self._request(
-            "POST", "/v1/agents/token", json_body=request.to_dict()
-        )
+        data = await self._request("POST", "/v1/agents/token", json_body=request.to_dict())
         return TokenResponse.from_dict(data)
 
     # ------------------------------------------------------------------
@@ -192,15 +184,11 @@ class AsyncWordmadeID:
         )
         return Skill.from_dict(data)
 
-    async def replace_skills(
-        self, agent_uuid: str, skills: list[Skill]
-    ) -> SkillsResponse:
+    async def replace_skills(self, agent_uuid: str, skills: list[Skill]) -> SkillsResponse:
         """Replace all skills for the agent. Requires agent_key."""
         path = f"/v1/agents/{quote(agent_uuid, safe='')}/skills"
         body = {"skills": [s.to_dict() for s in skills]}
-        data = await self._request(
-            "PUT", path, json_body=body, auth_key=self._agent_key
-        )
+        data = await self._request("PUT", path, json_body=body, auth_key=self._agent_key)
         return SkillsResponse.from_dict(data)
 
     async def delete_skill(self, agent_uuid: str, skill_id: str) -> None:
@@ -218,14 +206,10 @@ class AsyncWordmadeID:
         data = await self._request("GET", path, auth_key=self._agent_key)
         return CustomFieldsResponse.from_dict(data)
 
-    async def set_custom_field(
-        self, agent_uuid: str, key: str, value: str
-    ) -> None:
+    async def set_custom_field(self, agent_uuid: str, key: str, value: str) -> None:
         """Set a custom field on the agent's public profile. Requires agent_key."""
         path = f"/v1/agents/{quote(agent_uuid, safe='')}/custom/{quote(key, safe='')}"
-        await self._request(
-            "PUT", path, json_body={"value": value}, auth_key=self._agent_key
-        )
+        await self._request("PUT", path, json_body={"value": value}, auth_key=self._agent_key)
 
     async def delete_custom_field(self, agent_uuid: str, key: str) -> None:
         """Remove a custom field. Requires agent_key."""
@@ -241,34 +225,24 @@ class AsyncWordmadeID:
     # Private Metadata (agent auth, AES-256-GCM encrypted at rest)
     # ------------------------------------------------------------------
 
-    async def list_private_metadata(
-        self, agent_uuid: str
-    ) -> MetadataListResponse:
+    async def list_private_metadata(self, agent_uuid: str) -> MetadataListResponse:
         """List all private metadata keys and values. Requires agent_key."""
         path = f"/v1/agents/{quote(agent_uuid, safe='')}/private"
         data = await self._request("GET", path, auth_key=self._agent_key)
         return MetadataListResponse.from_dict(data)
 
-    async def get_private_metadata(
-        self, agent_uuid: str, key: str
-    ) -> MetadataEntry:
+    async def get_private_metadata(self, agent_uuid: str, key: str) -> MetadataEntry:
         """Get a single private metadata value. Requires agent_key."""
         path = f"/v1/agents/{quote(agent_uuid, safe='')}/private/{quote(key, safe='')}"
         data = await self._request("GET", path, auth_key=self._agent_key)
         return MetadataEntry.from_dict(data)
 
-    async def set_private_metadata(
-        self, agent_uuid: str, key: str, value: str
-    ) -> None:
+    async def set_private_metadata(self, agent_uuid: str, key: str, value: str) -> None:
         """Set a private metadata value. Requires agent_key."""
         path = f"/v1/agents/{quote(agent_uuid, safe='')}/private/{quote(key, safe='')}"
-        await self._request(
-            "PUT", path, json_body={"value": value}, auth_key=self._agent_key
-        )
+        await self._request("PUT", path, json_body={"value": value}, auth_key=self._agent_key)
 
-    async def delete_private_metadata(
-        self, agent_uuid: str, key: str
-    ) -> None:
+    async def delete_private_metadata(self, agent_uuid: str, key: str) -> None:
         """Remove a private metadata key. Requires agent_key."""
         path = f"/v1/agents/{quote(agent_uuid, safe='')}/private/{quote(key, safe='')}"
         await self._request("DELETE", path, auth_key=self._agent_key)
@@ -279,16 +253,12 @@ class AsyncWordmadeID:
 
     async def create_session(self) -> SessionResponse:
         """Create a short-lived agent session token (ias_, 30 min TTL)."""
-        data = await self._request(
-            "POST", "/v1/agents/session", auth_key=self._agent_key
-        )
+        data = await self._request("POST", "/v1/agents/session", auth_key=self._agent_key)
         return SessionResponse.from_dict(data)
 
     async def revoke_session(self) -> None:
         """Revoke the current session (logout). Requires agent_key."""
-        await self._request(
-            "DELETE", "/v1/agents/session", auth_key=self._agent_key
-        )
+        await self._request("DELETE", "/v1/agents/session", auth_key=self._agent_key)
 
     # ------------------------------------------------------------------
     # Key Rotation (iak_ only)
@@ -339,13 +309,9 @@ class AsyncWordmadeID:
 
     async def recover(self, request: RecoverRequest) -> None:
         """Initiate key recovery for an agent."""
-        await self._request(
-            "POST", "/v1/agents/recover", json_body=request.to_dict()
-        )
+        await self._request("POST", "/v1/agents/recover", json_body=request.to_dict())
 
-    async def recover_confirm(
-        self, request: RecoverConfirmRequest
-    ) -> RecoverConfirmResponse:
+    async def recover_confirm(self, request: RecoverConfirmRequest) -> RecoverConfirmResponse:
         """Complete key recovery with the recovery token from email."""
         data = await self._request(
             "POST", "/v1/agents/recover/confirm", json_body=request.to_dict()
@@ -356,9 +322,7 @@ class AsyncWordmadeID:
     # Registry (public, A2A agent card registry)
     # ------------------------------------------------------------------
 
-    async def get_registry(
-        self, params: RegistryParams | None = None
-    ) -> RegistryPage:
+    async def get_registry(self, params: RegistryParams | None = None) -> RegistryPage:
         """Query the A2A agent card registry with optional filters."""
         query = params.to_query() if params else {}
         data = await self._request("GET", "/v1/registry", params=query or None)
