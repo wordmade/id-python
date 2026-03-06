@@ -306,3 +306,363 @@ class SearchParams:
         if self.per_page > 0:
             params["per_page"] = str(self.per_page)
         return params
+
+
+# ---------------------------------------------------------------------------
+# Skills
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class Skill:
+    """An agent's declared skill (A2A AgentSkill format)."""
+
+    id: str
+    name: str
+    description: str = ""
+    tags: List[str] = field(default_factory=list)
+    examples: List[str] = field(default_factory=list)
+
+    def to_dict(self) -> Dict[str, Any]:
+        d: Dict[str, Any] = {"id": self.id, "name": self.name}
+        if self.description:
+            d["description"] = self.description
+        if self.tags:
+            d["tags"] = self.tags
+        if self.examples:
+            d["examples"] = self.examples
+        return d
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> Skill:
+        return cls(
+            id=data.get("id", ""),
+            name=data.get("name", ""),
+            description=data.get("description", ""),
+            tags=data.get("tags", []) or [],
+            examples=data.get("examples", []) or [],
+        )
+
+
+@dataclass
+class SkillsResponse:
+    """Response from listing or replacing skills."""
+
+    skills: List[Skill]
+    count: int
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> SkillsResponse:
+        return cls(
+            skills=[Skill.from_dict(s) for s in data.get("skills", [])],
+            count=data.get("count", 0),
+        )
+
+
+# ---------------------------------------------------------------------------
+# Custom Fields
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class CustomField:
+    """A key/value pair on an agent's public profile."""
+
+    key: str
+    value: str
+    updated_at: str = ""
+    well_known: bool = False
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> CustomField:
+        return cls(
+            key=data.get("key", ""),
+            value=data.get("value", ""),
+            updated_at=data.get("updated_at", ""),
+            well_known=data.get("well_known", False),
+        )
+
+
+@dataclass
+class CustomFieldsResponse:
+    """Response from listing custom fields."""
+
+    fields: List[CustomField]
+    count: int
+    quota: int
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> CustomFieldsResponse:
+        return cls(
+            fields=[CustomField.from_dict(f) for f in data.get("fields", [])],
+            count=data.get("count", 0),
+            quota=data.get("quota", 0),
+        )
+
+
+@dataclass
+class WellKnownField:
+    """A recognized custom field key definition."""
+
+    key: str
+    description: str
+    category: str
+    rendering: str
+    example: str = ""
+    format: str = ""
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> WellKnownField:
+        return cls(
+            key=data.get("key", ""),
+            description=data.get("description", ""),
+            category=data.get("category", ""),
+            rendering=data.get("rendering", ""),
+            example=data.get("example", ""),
+            format=data.get("format", ""),
+        )
+
+
+@dataclass
+class WellKnownFieldsResponse:
+    """Response from listing recognized custom field keys."""
+
+    fields: List[WellKnownField]
+    count: int
+    note: str = ""
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> WellKnownFieldsResponse:
+        return cls(
+            fields=[WellKnownField.from_dict(f) for f in data.get("fields", [])],
+            count=data.get("count", 0),
+            note=data.get("note", ""),
+        )
+
+
+# ---------------------------------------------------------------------------
+# Private Metadata
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class MetadataEntry:
+    """A key/value pair in the agent's private card."""
+
+    key: str
+    value: str = ""
+    updated_at: str = ""
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> MetadataEntry:
+        return cls(
+            key=data.get("key", ""),
+            value=data.get("value", ""),
+            updated_at=data.get("updated_at", ""),
+        )
+
+
+@dataclass
+class MetadataListResponse:
+    """Response from listing private metadata."""
+
+    keys: List[MetadataEntry]
+    count: int
+    quota: int
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> MetadataListResponse:
+        return cls(
+            keys=[MetadataEntry.from_dict(k) for k in data.get("keys", [])],
+            count=data.get("count", 0),
+            quota=data.get("quota", 0),
+        )
+
+
+# ---------------------------------------------------------------------------
+# Sessions
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class SessionResponse:
+    """Response from creating an agent session."""
+
+    token: str
+    expires_at: str
+    agent_uuid: str
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> SessionResponse:
+        return cls(
+            token=data.get("token", ""),
+            expires_at=data.get("expires_at", ""),
+            agent_uuid=data.get("agent_uuid", ""),
+        )
+
+
+# ---------------------------------------------------------------------------
+# Key Rotation
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class RotateKeyResponse:
+    """Response from rotating an agent's API key."""
+
+    api_key: str
+    api_key_id: str
+    message: str
+    revoked_keys: int
+    profile_url: str
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> RotateKeyResponse:
+        return cls(
+            api_key=data.get("api_key", ""),
+            api_key_id=data.get("api_key_id", ""),
+            message=data.get("message", ""),
+            revoked_keys=data.get("revoked_keys", 0),
+            profile_url=data.get("profile_url", ""),
+        )
+
+
+# ---------------------------------------------------------------------------
+# Avatar
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class AvatarResponse:
+    """Response from uploading an avatar."""
+
+    avatar_url: str
+    content_type: str
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> AvatarResponse:
+        return cls(
+            avatar_url=data.get("avatar_url", ""),
+            content_type=data.get("content_type", ""),
+        )
+
+
+# ---------------------------------------------------------------------------
+# Recovery
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class RecoverRequest:
+    """Request payload for initiating key recovery."""
+
+    cert_token: str
+    handle: str = ""
+    uuid: str = ""
+
+    def to_dict(self) -> Dict[str, Any]:
+        d: Dict[str, Any] = {"cert_token": self.cert_token}
+        if self.handle:
+            d["handle"] = self.handle
+        if self.uuid:
+            d["uuid"] = self.uuid
+        return d
+
+
+@dataclass
+class RecoverConfirmRequest:
+    """Request payload for confirming key recovery."""
+
+    recovery_token: str
+    cert_token: str
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "recovery_token": self.recovery_token,
+            "cert_token": self.cert_token,
+        }
+
+
+@dataclass
+class RecoverConfirmResponse:
+    """Response from successful key recovery."""
+
+    uuid: str
+    handle: str
+    api_key: str
+    api_key_id: str
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> RecoverConfirmResponse:
+        return cls(
+            uuid=data.get("uuid", ""),
+            handle=data.get("handle", ""),
+            api_key=data.get("api_key", ""),
+            api_key_id=data.get("api_key_id", ""),
+        )
+
+
+# ---------------------------------------------------------------------------
+# Registry
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class RegistryParams:
+    """Query parameters for the A2A agent card registry."""
+
+    q: str = ""
+    skill: str = ""
+    tag: str = ""
+    level: str = ""
+    min_trust: int = 0
+    has_contact: bool = False
+    world_presence: bool = False
+    sort: str = ""
+    page: int = 0
+    per_page: int = 0
+
+    def to_query(self) -> Dict[str, str]:
+        params: Dict[str, str] = {}
+        if self.q:
+            params["q"] = self.q
+        if self.skill:
+            params["skill"] = self.skill
+        if self.tag:
+            params["tag"] = self.tag
+        if self.level:
+            params["level"] = self.level
+        if self.min_trust > 0:
+            params["min_trust"] = str(self.min_trust)
+        if self.has_contact:
+            params["has_contact"] = "true"
+        if self.world_presence:
+            params["world_presence"] = "true"
+        if self.sort:
+            params["sort"] = self.sort
+        if self.page > 0:
+            params["page"] = str(self.page)
+        if self.per_page > 0:
+            params["per_page"] = str(self.per_page)
+        return params
+
+
+@dataclass
+class RegistryPage:
+    """Paginated list of A2A agent cards."""
+
+    cards: List[Dict[str, Any]]
+    total: int
+    page: int
+    per_page: int
+    pages: int
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> RegistryPage:
+        return cls(
+            cards=data.get("cards", []),
+            total=data.get("total", 0),
+            page=data.get("page", 0),
+            per_page=data.get("per_page", 0),
+            pages=data.get("pages", 0),
+        )

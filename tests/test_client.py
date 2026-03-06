@@ -9,7 +9,11 @@ from wordmade_id import (
     NotFoundError,
     ProfileUpdate,
     RateLimitedError,
+    RecoverConfirmRequest,
+    RecoverRequest,
     RegisterRequest,
+    RegistryParams,
+    Skill,
     TokenRequest,
     UnauthorizedError,
     WordmadeID,
@@ -223,3 +227,264 @@ class TestContextManager:
         with make_sync_client(handler) as client:
             stats = client.get_stats()
             assert stats.total_agents == 0
+
+
+# ------------------------------------------------------------------
+# Skills
+# ------------------------------------------------------------------
+
+
+class TestListSkills:
+    def test_list_skills(self) -> None:
+        data = {
+            "skills": [{"id": "code-review", "name": "Code Review", "tags": ["go"]}],
+            "count": 1,
+        }
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            assert request.method == "GET"
+            assert "/v1/agents/uuid1/skills" in str(request.url)
+            return json_response(data)
+
+        client = make_sync_client(handler)
+        result = client.list_skills("uuid1")
+        assert result.count == 1
+        assert result.skills[0].id == "code-review"
+
+
+class TestAddSkill:
+    def test_add_skill(self) -> None:
+        def handler(request: httpx.Request) -> httpx.Response:
+            assert request.method == "POST"
+            assert request.headers.get("Authorization") == "Bearer iak_key"
+            return json_response(
+                {"id": "testing", "name": "Testing"}, status_code=201
+            )
+
+        client = make_sync_client(handler, agent_key="iak_key")
+        result = client.add_skill("uuid1", Skill(id="testing", name="Testing"))
+        assert result.id == "testing"
+
+
+class TestDeleteSkill:
+    def test_delete_skill(self) -> None:
+        def handler(request: httpx.Request) -> httpx.Response:
+            assert request.method == "DELETE"
+            assert "/skills/code-review" in str(request.url)
+            return json_response({})
+
+        client = make_sync_client(handler, agent_key="iak_key")
+        client.delete_skill("uuid1", "code-review")
+
+
+# ------------------------------------------------------------------
+# Custom Fields
+# ------------------------------------------------------------------
+
+
+class TestListCustomFields:
+    def test_list_custom_fields(self) -> None:
+        data = {
+            "fields": [{"key": "website", "value": "https://example.com", "well_known": True}],
+            "count": 1,
+            "quota": 5,
+        }
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            assert "/v1/agents/uuid1/custom" in str(request.url)
+            return json_response(data)
+
+        client = make_sync_client(handler, agent_key="iak_key")
+        result = client.list_custom_fields("uuid1")
+        assert result.quota == 5
+        assert result.fields[0].key == "website"
+
+
+class TestSetCustomField:
+    def test_set_custom_field(self) -> None:
+        def handler(request: httpx.Request) -> httpx.Response:
+            assert request.method == "PUT"
+            return json_response({"key": "website", "value": "https://example.com"}, status_code=201)
+
+        client = make_sync_client(handler, agent_key="iak_key")
+        client.set_custom_field("uuid1", "website", "https://example.com")
+
+
+class TestListWellKnownFields:
+    def test_list_well_known_fields(self) -> None:
+        data = {
+            "fields": [{"key": "website", "description": "URL", "category": "contact", "rendering": "link"}],
+            "count": 1,
+            "note": "Recognized keys",
+        }
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            assert "/v1/custom-fields" in str(request.url)
+            return json_response(data)
+
+        client = make_sync_client(handler)
+        result = client.list_well_known_fields()
+        assert result.count == 1
+
+
+# ------------------------------------------------------------------
+# Private Metadata
+# ------------------------------------------------------------------
+
+
+class TestListPrivateMetadata:
+    def test_list_private_metadata(self) -> None:
+        data = {
+            "keys": [{"key": "model", "value": "claude-3.5"}],
+            "count": 1,
+            "quota": 5,
+        }
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            assert "/v1/agents/uuid1/private" in str(request.url)
+            return json_response(data)
+
+        client = make_sync_client(handler, agent_key="iak_key")
+        result = client.list_private_metadata("uuid1")
+        assert result.keys[0].key == "model"
+
+
+class TestGetPrivateMetadata:
+    def test_get_private_metadata(self) -> None:
+        def handler(request: httpx.Request) -> httpx.Response:
+            assert "/private/model" in str(request.url)
+            return json_response({"key": "model", "value": "claude-3.5"})
+
+        client = make_sync_client(handler, agent_key="iak_key")
+        result = client.get_private_metadata("uuid1", "model")
+        assert result.value == "claude-3.5"
+
+
+class TestSetPrivateMetadata:
+    def test_set_private_metadata(self) -> None:
+        def handler(request: httpx.Request) -> httpx.Response:
+            assert request.method == "PUT"
+            return json_response({"key": "model"})
+
+        client = make_sync_client(handler, agent_key="iak_key")
+        client.set_private_metadata("uuid1", "model", "claude-3.5")
+
+
+# ------------------------------------------------------------------
+# Sessions
+# ------------------------------------------------------------------
+
+
+class TestCreateSession:
+    def test_create_session(self) -> None:
+        data = {
+            "token": "ias_testsession",
+            "expires_at": "2026-03-06T12:30:00Z",
+            "agent_uuid": "uuid1",
+        }
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            assert request.method == "POST"
+            assert request.headers.get("Authorization") == "Bearer iak_key"
+            return json_response(data, status_code=201)
+
+        client = make_sync_client(handler, agent_key="iak_key")
+        result = client.create_session()
+        assert result.token == "ias_testsession"
+
+
+class TestRevokeSession:
+    def test_revoke_session(self) -> None:
+        def handler(request: httpx.Request) -> httpx.Response:
+            assert request.method == "DELETE"
+            return json_response({"message": "session revoked"})
+
+        client = make_sync_client(handler, agent_key="ias_session")
+        client.revoke_session()
+
+
+# ------------------------------------------------------------------
+# Key Rotation
+# ------------------------------------------------------------------
+
+
+class TestRotateKey:
+    def test_rotate_key(self) -> None:
+        data = {
+            "api_key": "iak_newkey",
+            "api_key_id": "key_456",
+            "message": "new key generated",
+            "revoked_keys": 1,
+            "profile_url": "/v1/agents/uuid1",
+        }
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            assert request.method == "POST"
+            assert "/keys/rotate" in str(request.url)
+            return json_response(data, status_code=201)
+
+        client = make_sync_client(handler, agent_key="iak_key")
+        result = client.rotate_key("uuid1")
+        assert result.api_key == "iak_newkey"
+        assert result.revoked_keys == 1
+
+
+# ------------------------------------------------------------------
+# Recovery
+# ------------------------------------------------------------------
+
+
+class TestRecover:
+    def test_recover(self) -> None:
+        def handler(request: httpx.Request) -> httpx.Response:
+            assert request.method == "POST"
+            assert "/v1/agents/recover" in str(request.url)
+            return json_response({"message": "recovery email sent"})
+
+        client = make_sync_client(handler)
+        client.recover(RecoverRequest(cert_token="wmn_test", handle="testbot"))
+
+
+class TestRecoverConfirm:
+    def test_recover_confirm(self) -> None:
+        data = {
+            "uuid": "uuid1",
+            "handle": "testbot",
+            "api_key": "iak_newkey",
+            "api_key_id": "key_789",
+        }
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            assert "/recover/confirm" in str(request.url)
+            return json_response(data)
+
+        client = make_sync_client(handler)
+        result = client.recover_confirm(
+            RecoverConfirmRequest(recovery_token="abc123", cert_token="wmn_test")
+        )
+        assert result.api_key == "iak_newkey"
+
+
+# ------------------------------------------------------------------
+# Registry
+# ------------------------------------------------------------------
+
+
+class TestGetRegistry:
+    def test_get_registry(self) -> None:
+        data = {
+            "cards": [{"handle": "@@bot1"}],
+            "total": 10,
+            "page": 1,
+            "per_page": 20,
+            "pages": 1,
+        }
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            assert "/v1/registry" in str(request.url)
+            assert "min_trust=70" in str(request.url)
+            return json_response(data)
+
+        client = make_sync_client(handler)
+        result = client.get_registry(RegistryParams(min_trust=70))
+        assert result.total == 10
