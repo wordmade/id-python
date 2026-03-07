@@ -13,6 +13,7 @@ from wordmade_id import (
     RegisterRequest,
     SearchParams,
     TokenRequest,
+    UnauthorizedError,
 )
 
 from .conftest import error_response, json_response, make_async_client
@@ -169,3 +170,196 @@ class TestAsyncContextManager:
         async with make_async_client(handler) as client:
             stats = await client.get_stats()
             assert stats.total_agents == 0
+
+
+# ------------------------------------------------------------------
+# OAuth 2.0
+# ------------------------------------------------------------------
+
+
+class TestAsyncOAuthClientCredentials:
+    @pytest.mark.asyncio
+    async def test_client_credentials(self) -> None:
+        token_data = {
+            "access_token": "eyJ.oauth.token",
+            "token_type": "Bearer",
+            "expires_in": 3600,
+            "scope": "profile cert",
+        }
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            assert request.method == "POST"
+            assert "/v1/oauth/token" in str(request.url)
+            ct = request.headers.get("content-type", "")
+            assert "application/x-www-form-urlencoded" in ct
+            body = request.content.decode()
+            assert "grant_type=client_credentials" in body
+            assert "client_id=wid_testclient" in body
+            return json_response(token_data)
+
+        async with make_async_client(handler) as client:
+            result = await client.oauth_client_credentials(
+                "wid_testclient", "secret123", "profile cert"
+            )
+            assert result.access_token == "eyJ.oauth.token"
+            assert result.token_type == "Bearer"
+            assert result.expires_in == 3600
+
+    @pytest.mark.asyncio
+    async def test_client_credentials_error(self) -> None:
+        def handler(request: httpx.Request) -> httpx.Response:
+            return error_response(401, "invalid_client", "Invalid client credentials")
+
+        async with make_async_client(handler) as client:
+            with pytest.raises(UnauthorizedError):
+                await client.oauth_client_credentials("bad_id", "bad_secret")
+
+
+class TestAsyncOAuthBuildAuthorizeURL:
+    @pytest.mark.asyncio
+    async def test_build_authorize_url(self) -> None:
+        client = make_async_client(lambda r: json_response({}))
+        result = client.oauth_build_authorize_url(
+            "wid_abc", "https://app.example.com/callback", "profile", "xyzstate"
+        )
+
+        assert "/v1/oauth/authorize?" in result.url
+        assert "response_type=code" in result.url
+        assert "client_id=wid_abc" in result.url
+        assert "state=xyzstate" in result.url
+        assert "code_challenge_method=S256" in result.url
+        assert result.code_verifier != ""
+
+        # Verify PKCE: sha256(verifier) == code_challenge
+        import base64
+        import hashlib
+        from urllib.parse import parse_qs, urlparse
+
+        parsed = urlparse(result.url)
+        qs = parse_qs(parsed.query)
+        challenge_in_url = qs["code_challenge"][0]
+        expected = (
+            base64.urlsafe_b64encode(
+                hashlib.sha256(result.code_verifier.encode()).digest()
+            )
+            .rstrip(b"=")
+            .decode()
+        )
+        assert challenge_in_url == expected
+        await client.close()
+
+
+class TestAsyncOAuthExchangeCode:
+    @pytest.mark.asyncio
+    async def test_exchange_code(self) -> None:
+        token_data = {
+            "access_token": "eyJ.access",
+            "token_type": "Bearer",
+            "expires_in": 3600,
+            "scope": "profile",
+            "refresh_token": "rt_abc123",
+        }
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            body = request.content.decode()
+            assert "grant_type=authorization_code" in body
+            assert "code=authcode123" in body
+            assert "code_verifier=myverifier" in body
+            return json_response(token_data)
+
+        async with make_async_client(handler) as client:
+            result = await client.oauth_exchange_code(
+                "wid_abc",
+                "secret",
+                "authcode123",
+                "https://app.example.com/callback",
+                "myverifier",
+            )
+            assert result.refresh_token == "rt_abc123"
+
+
+class TestAsyncOAuthRefreshToken:
+    @pytest.mark.asyncio
+    async def test_refresh_token(self) -> None:
+        token_data = {
+            "access_token": "eyJ.new.access",
+            "token_type": "Bearer",
+            "expires_in": 3600,
+            "scope": "profile",
+            "refresh_token": "rt_new456",
+        }
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            body = request.content.decode()
+            assert "grant_type=refresh_token" in body
+            assert "refresh_token=rt_old123" in body
+            return json_response(token_data)
+
+        async with make_async_client(handler) as client:
+            result = await client.oauth_refresh_token("wid_abc", "secret", "rt_old123")
+            assert result.access_token == "eyJ.new.access"
+            assert result.refresh_token == "rt_new456"
+
+
+class TestAsyncOAuthUserInfo:
+    @pytest.mark.asyncio
+    async def test_userinfo(self) -> None:
+        info_data = {
+            "sub": "550e8400-e29b-41d4-a716-446655440000",
+            "wm_handle": "@@testbot",
+            "wm_name": "Test Bot",
+            "wm_cert_level": 2,
+        }
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            assert request.method == "GET"
+            assert "/v1/oauth/userinfo" in str(request.url)
+            assert request.headers.get("Authorization") == "Bearer eyJ.access.token"
+            return json_response(info_data)
+
+        async with make_async_client(handler) as client:
+            result = await client.oauth_userinfo("eyJ.access.token")
+            assert result.sub == "550e8400-e29b-41d4-a716-446655440000"
+            assert result.wm_handle == "@@testbot"
+            assert result.wm_cert_level == 2
+
+
+class TestAsyncOAuthRevoke:
+    @pytest.mark.asyncio
+    async def test_revoke(self) -> None:
+        def handler(request: httpx.Request) -> httpx.Response:
+            assert request.method == "POST"
+            assert "/v1/oauth/revoke" in str(request.url)
+            body = request.content.decode()
+            assert "token=rt_revokeme" in body
+            assert "token_type_hint=refresh_token" in body
+            return json_response({})
+
+        async with make_async_client(handler) as client:
+            await client.oauth_revoke(
+                "wid_abc", "secret", "rt_revokeme", "refresh_token"
+            )
+
+
+class TestAsyncOAuthDiscovery:
+    @pytest.mark.asyncio
+    async def test_discovery(self) -> None:
+        discovery_data = {
+            "issuer": "https://id.wordmade.world",
+            "authorization_endpoint": "https://id.wordmade.world/v1/oauth/authorize",
+            "token_endpoint": "https://id.wordmade.world/v1/oauth/token",
+            "userinfo_endpoint": "https://id.wordmade.world/v1/oauth/userinfo",
+            "revocation_endpoint": "https://id.wordmade.world/v1/oauth/revoke",
+            "jwks_uri": "https://id.wordmade.world/.well-known/jwks.json",
+            "scopes_supported": ["profile", "cert", "email"],
+        }
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            assert request.method == "GET"
+            assert "/.well-known/openid-configuration" in str(request.url)
+            return json_response(discovery_data)
+
+        async with make_async_client(handler) as client:
+            result = await client.oauth_discovery()
+            assert result.issuer == "https://id.wordmade.world"
+            assert len(result.scopes_supported) == 3

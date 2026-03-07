@@ -76,7 +76,7 @@ class DirectoryPage:
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> DirectoryPage:
         return cls(
-            agents=data.get("agents", []),
+            agents=data.get("agents", []) or [],
             total=data.get("total", 0),
             page=data.get("page", 0),
             per_page=data.get("per_page", 0),
@@ -97,7 +97,7 @@ class DirectoryStats:
         return cls(
             total_agents=data.get("total_agents", 0),
             certified_today=data.get("certified_today", 0),
-            capabilities=data.get("capabilities", {}),
+            capabilities=data.get("capabilities", {}) or {},
         )
 
 
@@ -222,12 +222,16 @@ class TokenResponse:
 
     token: str
     expires_at: str
+    agent_uuid: str = ""
+    handle: str = ""
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> TokenResponse:
         return cls(
             token=data.get("token", ""),
             expires_at=data.get("expires_at", ""),
+            agent_uuid=data.get("agent_uuid", ""),
+            handle=data.get("handle", ""),
         )
 
 
@@ -354,7 +358,7 @@ class SkillsResponse:
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> SkillsResponse:
         return cls(
-            skills=[Skill.from_dict(s) for s in data.get("skills", [])],
+            skills=[Skill.from_dict(s) for s in data.get("skills", []) or []],
             count=data.get("count", 0),
         )
 
@@ -394,7 +398,7 @@ class CustomFieldsResponse:
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> CustomFieldsResponse:
         return cls(
-            fields=[CustomField.from_dict(f) for f in data.get("fields", [])],
+            fields=[CustomField.from_dict(f) for f in data.get("fields", []) or []],
             count=data.get("count", 0),
             quota=data.get("quota", 0),
         )
@@ -434,7 +438,7 @@ class WellKnownFieldsResponse:
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> WellKnownFieldsResponse:
         return cls(
-            fields=[WellKnownField.from_dict(f) for f in data.get("fields", [])],
+            fields=[WellKnownField.from_dict(f) for f in data.get("fields", []) or []],
             count=data.get("count", 0),
             note=data.get("note", ""),
         )
@@ -473,7 +477,7 @@ class MetadataListResponse:
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> MetadataListResponse:
         return cls(
-            keys=[MetadataEntry.from_dict(k) for k in data.get("keys", [])],
+            keys=[MetadataEntry.from_dict(k) for k in data.get("keys", []) or []],
             count=data.get("count", 0),
             quota=data.get("quota", 0),
         )
@@ -660,9 +664,127 @@ class RegistryPage:
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> RegistryPage:
         return cls(
-            cards=data.get("cards", []),
+            cards=data.get("cards", []) or [],
             total=data.get("total", 0),
             page=data.get("page", 0),
             per_page=data.get("per_page", 0),
             pages=data.get("pages", 0),
         )
+
+
+# ---------------------------------------------------------------------------
+# OAuth 2.0
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class OAuthTokenResponse:
+    """Standard OAuth 2.0 token response (RFC 6749 §5.1)."""
+
+    access_token: str
+    token_type: str
+    expires_in: int
+    scope: str
+    refresh_token: str = ""
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> OAuthTokenResponse:
+        return cls(
+            access_token=data.get("access_token", ""),
+            token_type=data.get("token_type", ""),
+            expires_in=data.get("expires_in", 0),
+            scope=data.get("scope", ""),
+            refresh_token=data.get("refresh_token", ""),
+        )
+
+
+@dataclass
+class OAuthUserInfoResponse:
+    """Agent claims from the OAuth userinfo endpoint.
+
+    Fields populated depend on granted scopes (profile, cert, email).
+    """
+
+    sub: str
+    # profile scope
+    wm_handle: str = ""
+    wm_name: str = ""
+    wm_trust_score: int = 0
+    wm_verification_level: str = ""
+    wm_capabilities: list[str] = field(default_factory=list)
+    # cert scope
+    wm_cert_score: float = 0.0
+    wm_cert_level: int = 0
+    wm_certified_at: str = ""
+    # email scope
+    wm_email: str = ""
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> OAuthUserInfoResponse:
+        return cls(
+            sub=data.get("sub", ""),
+            wm_handle=data.get("wm_handle", ""),
+            wm_name=data.get("wm_name", ""),
+            wm_trust_score=data.get("wm_trust_score", 0),
+            wm_verification_level=data.get("wm_verification_level", ""),
+            wm_capabilities=data.get("wm_capabilities", []) or [],
+            wm_cert_score=data.get("wm_cert_score", 0.0),
+            wm_cert_level=data.get("wm_cert_level", 0),
+            wm_certified_at=data.get("wm_certified_at", ""),
+            wm_email=data.get("wm_email", ""),
+        )
+
+
+@dataclass
+class OAuthDiscoveryResponse:
+    """OpenID Connect discovery document (/.well-known/openid-configuration)."""
+
+    issuer: str
+    authorization_endpoint: str
+    token_endpoint: str
+    userinfo_endpoint: str
+    revocation_endpoint: str
+    jwks_uri: str
+    response_types_supported: list[str] = field(default_factory=list)
+    grant_types_supported: list[str] = field(default_factory=list)
+    subject_types_supported: list[str] = field(default_factory=list)
+    scopes_supported: list[str] = field(default_factory=list)
+    token_endpoint_auth_methods_supported: list[str] = field(default_factory=list)
+    code_challenge_methods_supported: list[str] = field(default_factory=list)
+    claims_supported: list[str] = field(default_factory=list)
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> OAuthDiscoveryResponse:
+        return cls(
+            issuer=data.get("issuer", ""),
+            authorization_endpoint=data.get("authorization_endpoint", ""),
+            token_endpoint=data.get("token_endpoint", ""),
+            userinfo_endpoint=data.get("userinfo_endpoint", ""),
+            revocation_endpoint=data.get("revocation_endpoint", ""),
+            jwks_uri=data.get("jwks_uri", ""),
+            response_types_supported=data.get("response_types_supported", []) or [],
+            grant_types_supported=data.get("grant_types_supported", []) or [],
+            subject_types_supported=data.get("subject_types_supported", []) or [],
+            scopes_supported=data.get("scopes_supported", []) or [],
+            token_endpoint_auth_methods_supported=data.get(
+                "token_endpoint_auth_methods_supported", []
+            )
+            or [],
+            code_challenge_methods_supported=data.get(
+                "code_challenge_methods_supported", []
+            )
+            or [],
+            claims_supported=data.get("claims_supported", []) or [],
+        )
+
+
+@dataclass
+class OAuthAuthorizeResult:
+    """Result from :meth:`WordmadeID.oauth_build_authorize_url`.
+
+    Contains the authorization URL and the PKCE code_verifier to use
+    when exchanging the authorization code.
+    """
+
+    url: str
+    code_verifier: str

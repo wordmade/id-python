@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
-from urllib.parse import quote
+import base64
+import hashlib
+import os
+from urllib.parse import quote, urlencode
 
 import httpx
 
@@ -16,6 +19,10 @@ from .types import (
     DirectoryStats,
     MetadataEntry,
     MetadataListResponse,
+    OAuthAuthorizeResult,
+    OAuthDiscoveryResponse,
+    OAuthTokenResponse,
+    OAuthUserInfoResponse,
     ProfileUpdate,
     RecoverConfirmRequest,
     RecoverConfirmResponse,
@@ -34,6 +41,15 @@ from .types import (
     VerifyResult,
     WellKnownFieldsResponse,
 )
+
+
+def _generate_pkce() -> tuple[str, str]:
+    """Generate a PKCE code_verifier and its S256 code_challenge."""
+    verifier_bytes = os.urandom(32)
+    verifier = base64.urlsafe_b64encode(verifier_bytes).rstrip(b"=").decode("ascii")
+    challenge_bytes = hashlib.sha256(verifier.encode("ascii")).digest()
+    challenge = base64.urlsafe_b64encode(challenge_bytes).rstrip(b"=").decode("ascii")
+    return verifier, challenge
 
 
 class WordmadeID:
@@ -98,12 +114,14 @@ class WordmadeID:
             try:
                 data = resp.json()
                 code = data.get("error", "unknown")
-                message = data.get("message", resp.text)
+                message = data.get("message", data.get("error_description", resp.text))
             except Exception:
                 code = "unknown"
                 message = resp.text
             raise classify_error(resp.status_code, code, message)
 
+        if not resp.content:
+            return {}
         return resp.json()  # type: ignore[no-any-return]
 
     # ------------------------------------------------------------------
@@ -278,7 +296,11 @@ class WordmadeID:
     # ------------------------------------------------------------------
 
     def rotate_key(self, agent_uuid: str) -> RotateKeyResponse:
-        """Rotate the agent's API key. Requires agent_key set with iak_."""
+        """Rotate the agent's API key. Requires agent_key set with iak_.
+
+        The old key is revoked and a new one is returned.
+        All active sessions are invalidated.
+        """
         path = f"/v1/agents/{quote(agent_uuid, safe='')}/keys/rotate"
         data = self._request("POST", path, auth_key=self._agent_key)
         return RotateKeyResponse.from_dict(data)
@@ -302,7 +324,7 @@ class WordmadeID:
             try:
                 data = resp.json()
                 code = data.get("error", "unknown")
-                message = data.get("message", resp.text)
+                message = data.get("message", data.get("error_description", resp.text))
             except Exception:
                 code = "unknown"
                 message = resp.text
@@ -336,3 +358,143 @@ class WordmadeID:
         query = params.to_query() if params else {}
         data = self._request("GET", "/v1/registry", params=query or None)
         return RegistryPage.from_dict(data)
+
+    # ------------------------------------------------------------------
+    # OAuth 2.0
+    # ------------------------------------------------------------------
+
+    def _form_request(self, path: str, *, data: dict[str, str]) -> dict:  # type: ignore[type-arg]
+        """POST a form-encoded request and return the JSON response."""
+        headers: dict[str, str] = {"Accept": "application/json"}
+        resp = self._client.post(
+            f"{self._base_url}{path}",
+            data=data,
+            headers=headers,
+        )
+        if resp.status_code >= 400:
+            try:
+                body = resp.json()
+                code = body.get("error", "unknown")
+                message = body.get("message", body.get("error_description", resp.text))
+            except Exception:
+                code = "unknown"
+                message = resp.text
+            raise classify_error(resp.status_code, code, message)
+        if not resp.content:
+            return {}
+        return resp.json()  # type: ignore[no-any-return]
+
+    def oauth_client_credentials(
+        self, client_id: str, client_secret: str, scope: str = ""
+    ) -> OAuthTokenResponse:
+        """Exchange client credentials for an access token (RFC 6749 §4.4)."""
+        form: dict[str, str] = {
+            "grant_type": "client_credentials",
+            "client_id": client_id,
+            "client_secret": client_secret,
+        }
+        if scope:
+            form["scope"] = scope
+        data = self._form_request("/v1/oauth/token", data=form)
+        return OAuthTokenResponse.from_dict(data)
+
+    def oauth_build_authorize_url(
+        self,
+        client_id: str,
+        redirect_uri: str,
+        scope: str = "",
+        state: str = "",
+    ) -> OAuthAuthorizeResult:
+        """Build an authorization URL with PKCE. No HTTP call is made.
+
+        The state parameter is required by the Wordmade ID server for CSRF
+        protection. Generate a unique, unpredictable value and verify it
+        when handling the callback.
+        """
+        if not state:
+            raise ValueError("state parameter is required")
+        verifier, challenge = _generate_pkce()
+        params: dict[str, str] = {
+            "response_type": "code",
+            "client_id": client_id,
+            "redirect_uri": redirect_uri,
+            "code_challenge": challenge,
+            "code_challenge_method": "S256",
+            "state": state,
+        }
+        if scope:
+            params["scope"] = scope
+        url = f"{self._base_url}/v1/oauth/authorize?{urlencode(params)}"
+        return OAuthAuthorizeResult(url=url, code_verifier=verifier)
+
+    def oauth_exchange_code(
+        self,
+        client_id: str,
+        client_secret: str,
+        code: str,
+        redirect_uri: str,
+        code_verifier: str,
+    ) -> OAuthTokenResponse:
+        """Exchange an authorization code for tokens (RFC 6749 §4.1.3)."""
+        form = {
+            "grant_type": "authorization_code",
+            "client_id": client_id,
+            "client_secret": client_secret,
+            "code": code,
+            "redirect_uri": redirect_uri,
+            "code_verifier": code_verifier,
+        }
+        data = self._form_request("/v1/oauth/token", data=form)
+        return OAuthTokenResponse.from_dict(data)
+
+    def oauth_refresh_token(
+        self,
+        client_id: str,
+        client_secret: str,
+        refresh_token: str,
+        scope: str = "",
+    ) -> OAuthTokenResponse:
+        """Exchange a refresh token for new tokens (RFC 6749 §6)."""
+        form: dict[str, str] = {
+            "grant_type": "refresh_token",
+            "client_id": client_id,
+            "client_secret": client_secret,
+            "refresh_token": refresh_token,
+        }
+        if scope:
+            form["scope"] = scope
+        data = self._form_request("/v1/oauth/token", data=form)
+        return OAuthTokenResponse.from_dict(data)
+
+    def oauth_userinfo(self, access_token: str) -> OAuthUserInfoResponse:
+        """Fetch agent claims from the userinfo endpoint."""
+        if not access_token:
+            raise ValueError("access_token is required")
+        data = self._request("GET", "/v1/oauth/userinfo", auth_key=access_token)
+        return OAuthUserInfoResponse.from_dict(data)
+
+    def oauth_revoke(
+        self,
+        client_id: str,
+        client_secret: str,
+        token: str,
+        token_type_hint: str = "",
+    ) -> None:
+        """Revoke an OAuth token (RFC 7009).
+
+        Use this to revoke refresh tokens. Access tokens are stateless JWTs
+        and cannot be revoked.
+        """
+        form: dict[str, str] = {
+            "client_id": client_id,
+            "client_secret": client_secret,
+            "token": token,
+        }
+        if token_type_hint:
+            form["token_type_hint"] = token_type_hint
+        self._form_request("/v1/oauth/revoke", data=form)
+
+    def oauth_discovery(self) -> OAuthDiscoveryResponse:
+        """Fetch the OpenID Connect discovery document. No auth required."""
+        data = self._request("GET", "/.well-known/openid-configuration")
+        return OAuthDiscoveryResponse.from_dict(data)
