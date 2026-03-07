@@ -13,6 +13,8 @@ from .errors import (
 )
 from .types import (
     Agent,
+    AuthorizedApp,
+    AuthorizedAppsResponse,
     AvatarResponse,
     CustomField,
     CustomFieldsResponse,
@@ -56,6 +58,8 @@ __all__ = [
     "UnauthorizedError",
     "WordmadeIDError",
     "Agent",
+    "AuthorizedApp",
+    "AuthorizedAppsResponse",
     "AvatarResponse",
     "CustomField",
     "CustomFieldsResponse",

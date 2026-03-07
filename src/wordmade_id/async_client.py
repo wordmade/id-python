@@ -11,6 +11,7 @@ from .errors import classify_error
 from .client import _generate_pkce
 from .types import (
     Agent,
+    AuthorizedAppsResponse,
     AvatarResponse,
     CustomFieldsResponse,
     DirectoryPage,
@@ -486,6 +487,27 @@ class AsyncWordmadeID:
         if token_type_hint:
             form["token_type_hint"] = token_type_hint
         await self._form_request("/v1/oauth/revoke", data=form)
+
+    async def list_authorized_apps(self, agent_uuid: str) -> AuthorizedAppsResponse:
+        """List service apps the agent has authorized via OAuth.
+
+        Requires agent auth (iak_ or ias_).
+        """
+        data = await self._request(
+            "GET", f"/v1/agents/{quote(agent_uuid, safe='')}/authorized-apps"
+        )
+        return AuthorizedAppsResponse.from_dict(data)
+
+    async def revoke_authorized_app(self, agent_uuid: str, client_id: str) -> None:
+        """Revoke the agent's consent for a specific service app.
+
+        Also revokes all refresh tokens for that client+agent pair.
+        Requires agent auth (iak_ or ias_).
+        """
+        await self._request(
+            "DELETE",
+            f"/v1/agents/{quote(agent_uuid, safe='')}/authorized-apps/{quote(client_id, safe='')}",
+        )
 
     async def oauth_discovery(self) -> OAuthDiscoveryResponse:
         """Fetch the OpenID Connect discovery document. No auth required."""

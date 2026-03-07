@@ -116,6 +116,8 @@ class VerifyResult:
     cert_level: int = 0
     certified_at: str = ""
     audience: str = ""
+    scopes: list[str] = field(default_factory=list)
+    token_type: str = ""
     issued_at: str = ""
     expires_at: str = ""
     error: str = ""
@@ -134,6 +136,8 @@ class VerifyResult:
             cert_level=data.get("cert_level", 0),
             certified_at=data.get("certified_at", ""),
             audience=data.get("audience", ""),
+            scopes=data.get("scopes", []) or [],
+            token_type=data.get("token_type", ""),
             issued_at=data.get("issued_at", ""),
             expires_at=data.get("expires_at", ""),
             error=data.get("error", ""),
@@ -775,6 +779,43 @@ class OAuthDiscoveryResponse:
             )
             or [],
             claims_supported=data.get("claims_supported", []) or [],
+        )
+
+
+@dataclass
+class AuthorizedApp:
+    """A service app that an agent has authorized via OAuth."""
+
+    client_id: str
+    name: str = ""
+    scopes: list[str] = field(default_factory=list)
+    granted_at: str = ""
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> AuthorizedApp:
+        return cls(
+            client_id=data.get("client_id", ""),
+            name=data.get("name", ""),
+            scopes=data.get("scopes", []) or [],
+            granted_at=data.get("granted_at", ""),
+        )
+
+
+@dataclass
+class AuthorizedAppsResponse:
+    """Response from listing authorized apps."""
+
+    authorized_apps: list[AuthorizedApp] = field(default_factory=list)
+    total: int = 0
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> AuthorizedAppsResponse:
+        return cls(
+            authorized_apps=[
+                AuthorizedApp.from_dict(a)
+                for a in data.get("authorized_apps", [])
+            ],
+            total=data.get("total", 0),
         )
 
 
