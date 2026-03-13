@@ -494,7 +494,8 @@ class AsyncWordmadeID:
         Requires agent auth (iak_ or ias_).
         """
         data = await self._request(
-            "GET", f"/v1/agents/{quote(agent_uuid, safe='')}/authorized-apps"
+            "GET", f"/v1/agents/{quote(agent_uuid, safe='')}/authorized-apps",
+            auth_key=self._agent_key,
         )
         return AuthorizedAppsResponse.from_dict(data)
 
@@ -507,6 +508,7 @@ class AsyncWordmadeID:
         await self._request(
             "DELETE",
             f"/v1/agents/{quote(agent_uuid, safe='')}/authorized-apps/{quote(client_id, safe='')}",
+            auth_key=self._agent_key,
         )
 
     async def oauth_discovery(self) -> OAuthDiscoveryResponse:

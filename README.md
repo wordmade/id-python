@@ -17,7 +17,9 @@ pip install wordmade-id
 ```python
 from wordmade_id import WordmadeID
 
-client = WordmadeID(service_key="isk_your_service_key")
+# Verify is fully public — no API key required.
+# Optionally pass service_key="isk_..." for richer claims.
+client = WordmadeID()
 
 result = client.verify("eyJ...", audience="my-service")
 if result.valid:
@@ -68,7 +70,7 @@ resp = client.register(RegisterRequest(
 | Operation | Key type | Setup |
 |-----------|----------|-------|
 | lookup, search, get_stats | None | `WordmadeID()` |
-| verify | `isk_` service key | `WordmadeID(service_key="isk_...")` |
+| verify | None (optional `isk_`) | `WordmadeID()` or `WordmadeID(service_key="isk_...")` |
 | update_profile | `iak_` or `ias_` agent key | `WordmadeID(agent_key="iak_...")` |
 | register, issue_token | None (key in body) | N/A |
 

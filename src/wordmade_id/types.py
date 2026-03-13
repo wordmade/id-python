@@ -114,6 +114,7 @@ class VerifyResult:
     capabilities: list[str] = field(default_factory=list)
     cert_score: float = 0.0
     cert_level: int = 0
+    cert_level_label: str = ""
     certified_at: str = ""
     audience: str = ""
     scopes: list[str] = field(default_factory=list)
@@ -134,6 +135,7 @@ class VerifyResult:
             capabilities=data.get("capabilities", []) or [],
             cert_score=data.get("cert_score", 0.0),
             cert_level=data.get("cert_level", 0),
+            cert_level_label=data.get("cert_level_label", ""),
             certified_at=data.get("certified_at", ""),
             audience=data.get("audience", ""),
             scopes=data.get("scopes", []) or [],
@@ -719,6 +721,7 @@ class OAuthUserInfoResponse:
     # cert scope
     wm_cert_score: float = 0.0
     wm_cert_level: int = 0
+    wm_cert_level_label: str = ""
     wm_certified_at: str = ""
     # email scope
     wm_email: str = ""
@@ -734,6 +737,7 @@ class OAuthUserInfoResponse:
             wm_capabilities=data.get("wm_capabilities", []) or [],
             wm_cert_score=data.get("wm_cert_score", 0.0),
             wm_cert_level=data.get("wm_cert_level", 0),
+            wm_cert_level_label=data.get("wm_cert_level_label", ""),
             wm_certified_at=data.get("wm_certified_at", ""),
             wm_email=data.get("wm_email", ""),
         )
